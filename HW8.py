@@ -8,6 +8,12 @@ import os
 import sqlite3
 import unittest
 
+def open_database(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path+'/'+db_name)
+    cur = conn.cursor()
+    return cur, conn, path
+
 def load_rest_data(db):
     """
     This function accepts the file name of a database as a parameter and returns a nested
@@ -15,22 +21,16 @@ def load_rest_data(db):
     and each inner key is a dictionary, where the key:value pairs should be the category, 
     building, and rating for the restaurant.
     """
+    cur, conn, path = open_database(db)
     restdic = {}
-    path = os.path.dirname(os.path.abspath(__file__))
-    conn = sqlite3.connect(path+'/'+db)
-    cur = conn.cursor()
     cur.execute("SELECT name, category_id, building_id, rating FROM restaurants")
     rests = cur.fetchall()
     for rest in rests:
-        #print(rest)
         hold = {}
-        #print(type(rest[1]))
         cur.execute("SELECT category FROM categories WHERE id = (?)", (rest[1],))
         cat = cur.fetchone()
-        #print(cat)  
         cur.execute("SELECT building FROM buildings WHERE id = (?)", (rest[2],))
         build = cur.fetchone()
-        #print(build)  
         hold['category'] = cat[0]
         hold['building'] = build[0]
         hold['rating'] = rest[3]
@@ -44,26 +44,21 @@ def plot_rest_categories(db):
     restaurant categories and the values should be the number of restaurants in each category. The function should
     also create a bar chart with restaurant categories and the count of number of restaurants in each category.
     """
+    cur, conn, path = open_database(db)
     catdic = {}
-    path = os.path.dirname(os.path.abspath(__file__))
-    conn = sqlite3.connect(path+'/'+db)
-    cur = conn.cursor()
     cur.execute("SELECT id, category FROM categories")
     cats = cur.fetchall()
     cur.execute("SELECT category_id FROM restaurants")
     rests = cur.fetchall()
     for rest in rests:
         catdic[cats[rest[0]-1][1]] = catdic.get(cats[rest[0]-1][1], 0) + 1
-    #print plot
     catdicsorted = sorted(catdic.items(), key=lambda x:x[1], reverse=False)
-    #print(catdicsorted)
     x=[]
     y=[]
     for it in catdicsorted:
         y.append(it[0])
         x.append(it[1])
-    #print(y)
-    #print(x)
+        
     plt.barh(y=y,width=x)
     plt.title('Number of Restaurants Per Category')
     plt.xlabel('Number of Restaurants')
@@ -71,9 +66,6 @@ def plot_rest_categories(db):
     plt.tick_params(axis='x',width=1)
     plt.savefig(path + "/plot_rest_categories.png", bbox_inches='tight')
     plt.clf()
-    #plt.show()
-    #plt.savefig(path + "/rest_categories.svg", bbox_inches='tight')
-    #print(catdic)
     return catdic
     pass
 
@@ -83,10 +75,8 @@ def find_rest_in_building(building_num, db):
     restaurant names. You need to find all the restaurant names which are in the specific building. The restaurants 
     should be sorted by their rating from highest to lowest.
     '''
+    cur, conn, path = open_database(db)
     rests = []
-    path = os.path.dirname(os.path.abspath(__file__))
-    conn = sqlite3.connect(path+'/'+db)
-    cur = conn.cursor()
     cur.execute("SELECT id FROM buildings WHERE building = (?)", (building_num,))
     build_id = cur.fetchone()
     cur.execute("SELECT name, rating FROM restaurants WHERE building_id = (?)", build_id)
@@ -111,10 +101,8 @@ def get_highest_rating(db): #Do this through DB as well
     The second bar chart displays the buildings along the y-axis and their ratings along the x-axis 
     in descending order (by rating).
     """
+    cur, conn, path = open_database(db)
     rests = []
-    path = os.path.dirname(os.path.abspath(__file__))
-    conn = sqlite3.connect(path+'/'+db)
-    cur = conn.cursor()
     
     cur.execute("SELECT * FROM categories")
     cats = cur.fetchall()
@@ -140,9 +128,7 @@ def get_highest_rating(db): #Do this through DB as well
         avgBuild[key] = builddic[key] / builddic2[key]
     sortcat = sorted(avgCat.items(), key=lambda x:x[1], reverse=False)
     sortbuild = sorted(avgBuild.items(), key=lambda x:x[1], reverse=False)
-    #print(sortcat)
-    
-    #plot Shit HERE
+
     x=[]
     y=[]
     x2=[]
@@ -153,8 +139,7 @@ def get_highest_rating(db): #Do this through DB as well
     for it in sortbuild:
         y2.append(str(it[0]))
         x2.append(it[1])
-    #print(y)
-    #print(x)
+        
     plt.barh(y=y,width=x)
     plt.title('Average Rating Per Category')
     plt.xlabel('Rating')
@@ -167,7 +152,6 @@ def get_highest_rating(db): #Do this through DB as well
     plt.ylabel('Building')
     plt.savefig(path + "/get_highest_building_rating.png", bbox_inches='tight')
     plt.clf()
-    #plt.show()
     
     return([sortcat[len(sortcat)-1],sortbuild[len(sortbuild)-1]])
     pass
